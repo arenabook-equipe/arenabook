@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ArenaBook.Api/ArenaBook.Api.csproj" />
+  <Project Path="ArenaBook.Core/ArenaBook.Core.csproj" />
+  <Project Path="ArenaBook.Infrastructure/ArenaBook.Infrastructure.csproj" />
+  <Project Path="ArenaBook.Test/ArenaBook.Test.csproj" />
+</Solution>
