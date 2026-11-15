@@ -1,23 +1,42 @@
-var builder = WebApplication.CreateBuilder(args);
+using ArenaBook.Api.Configuration;
+using ArenaBook.Api.Diagnostics;
 
-// Add services to the container.
+var checkDatabase = args.Contains("--check-database", StringComparer.Ordinal);
+var builder = WebApplication.CreateBuilder(
+    args.Where(argument => argument != "--check-database").ToArray());
 
+if (checkDatabase)
+{
+    // O diagnostico emite somente resultados controlados, sem logs de conexao do provedor.
+    builder.Logging.ClearProviders();
+    if (!builder.Environment.IsDevelopment())
+    {
+        Console.Error.WriteLine("--check-database só pode ser executado em Development.");
+        Environment.ExitCode = 1;
+        return;
+    }
+}
+
+builder.Services.AddArenaBookDatabase(builder.Configuration);
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+if (checkDatabase)
+{
+    Environment.ExitCode = await DatabaseConnectionCheck.RunAsync(app.Services);
+    await app.DisposeAsync();
+    return;
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
+
