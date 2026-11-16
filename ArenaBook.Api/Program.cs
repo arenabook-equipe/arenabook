@@ -1,5 +1,8 @@
 using ArenaBook.Api.Configuration;
 using ArenaBook.Api.Diagnostics;
+using ArenaBook.Core.Interfaces;
+using ArenaBook.Core.Services;
+using ArenaBook.Infrastructure.Repositories;
 
 var checkDatabase = args.Contains("--check-database", StringComparer.Ordinal);
 var builder = WebApplication.CreateBuilder(
@@ -16,8 +19,10 @@ if (checkDatabase)
         return;
     }
 }
-
 builder.Services.AddArenaBookDatabase(builder.Configuration);
+builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+builder.Services.AddScoped<ClienteService>();
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
