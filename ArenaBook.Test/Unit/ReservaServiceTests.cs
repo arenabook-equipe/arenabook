@@ -297,7 +297,9 @@ public class ReservaServiceTests
     // Depois do fechamento.
     [TestCase(1, 1, 2, true, 21, 0, 23, 0,
         typeof(InvalidOperationException))]
-    public void Criacao_DadosInvalidos_DeveRecusarSemSalvar(int idCliente, int idQuadra, int idEsporte, bool ativa, int horaInicio, int minutoInicio, int horaFim, int minutoFim, Type tipoExcecao)
+
+    // Intervalo fora do funcionamento(deve ser rejeitado)
+    public void Criacao_DadosInvalidos(int idCliente, int idQuadra, int idEsporte, bool ativa, int horaInicio, int minutoInicio, int horaFim, int minutoFim, Type tipoExcecao)
     {
         var data = new DateOnly(2030, 1, 6);
         var quadra = CriarQuadraParaDisponibilidade(data);
@@ -391,14 +393,12 @@ public class ReservaServiceTests
     [TestCase(StatusReserva.Pendente)]
     [TestCase(StatusReserva.Confirmada)]
     // A reserva cancelada deve liberar o horário para nova reserva e manter o histórico da reserva original
-    public async Task R03_CancelarReserva_DeveLiberarHorarioEPreservarHistorico(StatusReserva statusInicial)
+    public async Task R03_CancelarReserva(StatusReserva statusInicial)
     {
         var data = new DateOnly(2030, 1, 6);
         var repository = new ReservaRepositoryFake();
 
-        IReservaService service = new ReservaService(
-            new ClienteRepositoryFake(),
-            new QuadraRepositoryFake(CriarQuadraParaDisponibilidade(data)), repository);
+        IReservaService service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(CriarQuadraParaDisponibilidade(data)), repository);
 
         var original = await service.RegistrarAsync(1, 1, 1, data, new TimeOnly(18, 0), new TimeOnly(20, 0));
 
@@ -431,6 +431,158 @@ public class ReservaServiceTests
             Assert.That(nova.IdStatus, Is.EqualTo(StatusReserva.Pendente));
             Assert.That(nova.ValorTotal, Is.EqualTo(160m));
         });
+    }
+
+    [TestCase(StatusReserva.Pendente)]
+    [TestCase(StatusReserva.Confirmada)]
+    // deve sugerir horários livres, considerando reservas existentes e duração solicitada
+    public async Task R04_SugerirHorarios(StatusReserva status)
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var quadra = CriarQuadraParaSugestoes(data);
+        var repository = new ReservaRepositoryFake();
+
+        repository.ReservasSalvas.Add(new Reserva
+        {
+            IdReserva = 1,
+            IdCliente = 1,
+            IdQuadra = 1,
+            IdEsporte = 1,
+            DataReserva = data,
+            HoraInicio = new TimeOnly(19, 0),
+            HoraFim = new TimeOnly(21, 0),
+            ValorTotal = 160m,
+            IdStatus = status
+        });
+
+        IReservaService service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(quadra), repository);
+
+        var sugestoes = await service.SugerirHorariosAsync(1, data, 1);
+
+        var esperado = new[]
+        {
+        (new TimeOnly(18, 0), new TimeOnly(19, 0)),
+        (new TimeOnly(21, 0), new TimeOnly(22, 0))
+    };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sugestoes.Select(h => (h.HoraInicio, h.HoraFim)), Is.EqualTo(esperado));
+            Assert.That(repository.ReservasSalvas, Has.Count.EqualTo(1));
+            Assert.That(repository.ReservasSalvas[0].IdStatus, Is.EqualTo(status));
+        });
+    }
+
+    [TestCase(2)]
+    [TestCase(5)]
+    // deve retornar lista vazia quando não houver espaço para a duração
+    public async Task Sugestoes_SemEspacoParaDuracao(int duracaoHoras)
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var repository = new ReservaRepositoryFake();
+
+        repository.ReservasSalvas.Add(new Reserva
+        {
+            IdReserva = 1,
+            IdCliente = 1,
+            IdQuadra = 1,
+            IdEsporte = 1,
+            DataReserva = data,
+            HoraInicio = new TimeOnly(19, 0),
+            HoraFim = new TimeOnly(21, 0),
+            ValorTotal = 160m,
+            IdStatus = StatusReserva.Confirmada
+        });
+
+        var service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(CriarQuadraParaSugestoes(data)), repository);
+
+        var sugestoes = await service.SugerirHorariosAsync(1, data, duracaoHoras);
+
+        Assert.That(sugestoes, Is.Empty);
+    }
+
+    [TestCase(StatusReserva.Cancelada)]
+    [TestCase(StatusReserva.Concluida)]
+    //deve sugerir horários livres mesmo com reserva existente, se a reserva não estiver ativa
+    public async Task Sugestoes_ReservaNaoAtiva(StatusReserva status)
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var repository = new ReservaRepositoryFake();
+
+        repository.ReservasSalvas.Add(new Reserva
+        {
+            IdReserva = 1,
+            IdCliente = 1,
+            IdQuadra = 1,
+            IdEsporte = 1,
+            DataReserva = data,
+            HoraInicio = new TimeOnly(19, 0),
+            HoraFim = new TimeOnly(21, 0),
+            ValorTotal = 160m,
+            IdStatus = status
+        });
+
+        var service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(CriarQuadraParaSugestoes(data)), repository);
+
+        var sugestoes = await service.SugerirHorariosAsync(1, data, 2);
+
+        var esperado = new[]
+        {
+        (new TimeOnly(18, 0), new TimeOnly(20, 0)),
+        (new TimeOnly(19, 0), new TimeOnly(21, 0)),
+        (new TimeOnly(20, 0), new TimeOnly(22, 0))
+    };
+
+        Assert.That(sugestoes.Select(h => (h.HoraInicio, h.HoraFim)), Is.EqualTo(esperado));
+    }
+
+    [TestCase(0)]
+    [TestCase(-1)]
+    // deve recusar solicitações de sugestão com duração inválida
+    public void Sugestoes_DuracaoInvalida(int duracaoHoras)
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var repository = new ReservaRepositoryFake();
+        var service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(CriarQuadraParaSugestoes(data)), repository);
+
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+        {
+            await service.SugerirHorariosAsync(1, data, duracaoHoras);
+        });
+    }
+
+    [TestCase(99, true)]
+    [TestCase(1, false)]
+    // deve recusar solicitações de sugestão para quadra inexistente ou desativada
+    public void Sugestoes_QuadraInexistenteOuDesativada(int idQuadra, bool ativa)
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var quadra = CriarQuadraParaSugestoes(data);
+        quadra.Ativa = ativa;
+
+        var service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(quadra), new ReservaRepositoryFake());
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await service.SugerirHorariosAsync(idQuadra, data, 1);
+        });
+    }
+
+    private static Quadra CriarQuadraParaSugestoes(DateOnly data)
+    {
+        var quadra = CriarQuadraParaDisponibilidade(data);
+        quadra.HorariosFuncionamento.Clear();
+
+        quadra.HorariosFuncionamento.Add(new HorarioFuncionamento
+        {
+            IdHorario = 1,
+            IdQuadra = 1,
+            DiaSemana = (byte)((int)data.DayOfWeek + 1),
+            HoraAbertura = new TimeOnly(18, 0),
+            HoraFechamento = new TimeOnly(22, 0)
+        });
+
+        return quadra;
     }
 
     [Test]
@@ -507,7 +659,6 @@ public class ReservaServiceTests
         Assert.That(reserva.IdStatus, Is.EqualTo(StatusReserva.Concluida));
     }
 
-    // Cria uma quadra com duas modalidades e horário de funcionamento para o dia da semana da data informada
     private static Quadra CriarQuadraParaDisponibilidade(DateOnly data)
     {
         var quadra = new Quadra

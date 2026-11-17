@@ -1,6 +1,7 @@
 ﻿using ArenaBook.Core.Entities;
 using ArenaBook.Core.Enums;
 using ArenaBook.Core.Interfaces;
+using ArenaBook.Core.Models;
 
 namespace ArenaBook.Core.Services;
 
@@ -148,5 +149,64 @@ public class ReservaService : IReservaService
         reserva.IdStatus = StatusReserva.Cancelada;
 
         return reserva;
+    }
+    public async Task<IReadOnlyList<HorarioDisponivel>> SugerirHorariosAsync(int idQuadra, DateOnly dataReserva, int duracaoHoras, CancellationToken cancellationToken = default)
+    {
+        if (idQuadra <= 0)
+        {
+            throw new ArgumentException("A quadra deve ter identificador positivo.");
+        }
+
+        if (duracaoHoras <= 0)
+        {
+            throw new ArgumentException("A duração deve ser um número positivo de horas.");
+        }
+
+        var quadra = await _quadraRepository.ObterParaReservaAsync(idQuadra, cancellationToken);
+
+        if (quadra is null)
+        {
+            throw new InvalidOperationException("Quadra não encontrada.");
+        }
+
+        if (!quadra.Ativa)
+        {
+            throw new InvalidOperationException("A quadra está desativada.");
+        }
+
+        var sugestoes = new List<HorarioDisponivel>();
+
+        // Uma reserva precisa começar e terminar no mesmo dia.
+        if (duracaoHoras >= 24)
+        {
+            return sugestoes;
+        }
+
+        var diaSemana = (int)dataReserva.DayOfWeek + 1;
+        var funcionamento = quadra.HorariosFuncionamento.Where(h => h.DiaSemana == diaSemana).ToArray();
+
+        for (var hora = 0; hora + duracaoHoras < 24; hora++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var inicio = new TimeOnly(hora, 0);
+            var fim = new TimeOnly(hora + duracaoHoras, 0);
+
+            var dentroDoFuncionamento = funcionamento.Any(h => inicio >= h.HoraAbertura && fim <= h.HoraFechamento);
+
+            if (!dentroDoFuncionamento)
+            {
+                continue;
+            }
+
+            var ocupado = await _reservaRepository.ExisteSobreposicaoAsync(idQuadra, dataReserva, inicio, fim, StatusBloqueantes, cancellationToken);
+
+            if (!ocupado)
+            {
+                sugestoes.Add(new HorarioDisponivel(inicio, fim));
+            }
+        }
+
+        return sugestoes;
     }
 }
