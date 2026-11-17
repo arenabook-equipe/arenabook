@@ -43,4 +43,25 @@ public class ClienteRepository : IClienteRepository
                 cliente => cliente.IdCliente == idCliente,
                 cancellationToken);
     }
+    public async Task<bool> AtualizarAsync(
+    int idCliente,
+    string nome,
+    string telefone,
+    CancellationToken cancellationToken)
+    {
+        var cliente = await _context.Clientes.SingleOrDefaultAsync(
+            cliente => cliente.IdCliente == idCliente,
+            cancellationToken);
+
+        if (cliente is null)
+        {
+            return false;
+        }
+
+        cliente.Nome = nome;
+        cliente.Telefone = telefone;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
 }

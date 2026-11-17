@@ -1,4 +1,4 @@
-﻿using System.Threading;
+﻿    using System.Threading;
 using System.Threading.Tasks;
 using ArenaBook.Api.DTOs;
 using ArenaBook.Core.Services;
@@ -61,5 +61,24 @@ public class ClientesController : ControllerBase
             cliente.Telefone,
             cliente.Email
         });
+    }
+    [HttpPut("{idCliente:int}")]
+    public async Task<IActionResult> Atualizar(
+    int idCliente,
+    [FromBody] AtualizarClienteRequest request,
+    CancellationToken cancellationToken)
+    {
+        var atualizado = await _service.AtualizarAsync(
+            idCliente,
+            request.Nome,
+            request.Telefone,
+            cancellationToken);
+
+        if (!atualizado)
+        {
+            return NotFound(new { mensagem = "Cliente não encontrado." });
+        }
+
+        return NoContent();
     }
 }

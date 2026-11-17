@@ -10,5 +10,10 @@ public interface IClienteRepository
 
     Task AdicionarAsync(Cliente cliente, CancellationToken cancellationToken);
     Task<Cliente?> ObterPorIdAsync(int idCliente, CancellationToken cancellationToken);
+    Task<bool> AtualizarAsync(
+    int idCliente,
+    string nome,
+    string telefone,
+    CancellationToken cancellationToken);
 
 }

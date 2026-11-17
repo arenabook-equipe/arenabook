@@ -49,4 +49,19 @@ public class ClienteService
     {
         return _repository.ObterPorIdAsync(idCliente, cancellationToken);
     }
+    public Task<bool> AtualizarAsync(
+    int idCliente,
+    string nome,
+    string telefone,
+    CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(nome);
+        ArgumentException.ThrowIfNullOrWhiteSpace(telefone);
+
+        return _repository.AtualizarAsync(
+            idCliente,
+            nome.Trim(),
+            telefone.Trim(),
+            cancellationToken);
+    }
 }

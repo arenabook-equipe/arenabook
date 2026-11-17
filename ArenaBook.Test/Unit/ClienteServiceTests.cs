@@ -69,5 +69,24 @@ public class ClienteServiceTests
         {
             return Task.FromResult(ClienteSalvo?.IdCliente == idCliente ? ClienteSalvo : null);
         }
+        public Task<bool> AtualizarAsync(
+    int idCliente,
+    string nome,
+    string telefone,
+    CancellationToken cancellationToken)
+        {
+            var cliente = ClienteSalvo;
+
+            if (cliente is null || cliente.IdCliente != idCliente)
+            {
+                return Task.FromResult(false);
+            }
+
+            cliente.Nome = nome;
+            cliente.Telefone = telefone;
+
+            return Task.FromResult(true);
+        }
     }
+
 }
