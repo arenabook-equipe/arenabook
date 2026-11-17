@@ -31,20 +31,14 @@ public class ReservaRepository : IReservaRepository
 
         // Bloqueia a quadra até o fim da transação para evitar reservas simultâneas conflitantes.
         await _context.Quadras.FromSqlInterpolated(
-                $"""
-            SELECT IdQuadra, Nome, PrecoHora, Ativa
-            FROM Quadra WITH (UPDLOCK, HOLDLOCK)
-            WHERE IdQuadra = {reserva.IdQuadra}
-            """).AsNoTracking()
+            $"""
+                SELECT IdQuadra, Nome, PrecoHora, Ativa
+                FROM Quadra WITH (UPDLOCK, HOLDLOCK)
+                WHERE IdQuadra = {reserva.IdQuadra}
+                """).AsNoTracking()
             .SingleAsync(cancellationToken);
 
-        var existeSobreposicao = await ExisteSobreposicaoAsync(
-            reserva.IdQuadra,
-            reserva.DataReserva,
-            reserva.HoraInicio,
-            reserva.HoraFim,
-            statusBloqueantes,
-            cancellationToken);
+        var existeSobreposicao = await ExisteSobreposicaoAsync(reserva.IdQuadra, reserva.DataReserva, reserva.HoraInicio, reserva.HoraFim, statusBloqueantes, cancellationToken);
 
         if (existeSobreposicao)
         {
@@ -58,5 +52,18 @@ public class ReservaRepository : IReservaRepository
         await transaction.CommitAsync(cancellationToken);
 
         return true;
+    }
+    //consultará a reserva pelo id.
+    public Task<Reserva?> ObterPorIdAsync(int idReserva, CancellationToken cancellationToken = default)
+    {
+        return _context.Reservas.AsNoTracking().SingleOrDefaultAsync(reserva => reserva.IdReserva == idReserva, cancellationToken);
+    }
+    //consultará a reserva pelo id e status.
+    public async Task<bool> TentarCancelarAsync(int idReserva, IReadOnlyCollection<StatusReserva> statusPermitidos, CancellationToken cancellationToken = default)
+    {
+        var quantidadeAtualizada = await _context.Reservas.Where(reserva => reserva.IdReserva == idReserva && statusPermitidos.Contains(reserva.IdStatus))
+            .ExecuteUpdateAsync(atualizacao => atualizacao.SetProperty(reserva => reserva.IdStatus, StatusReserva.Cancelada), cancellationToken);
+
+        return quantidadeAtualizada == 1;
     }
 }

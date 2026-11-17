@@ -17,44 +17,26 @@ public class ReservaService : IReservaService
             StatusReserva.Confirmada
         });
 
-    public ReservaService(
-        IClienteRepository clienteRepository,
-        IQuadraRepository quadraRepository,
-        IReservaRepository reservaRepository)
+    public ReservaService(IClienteRepository clienteRepository, IQuadraRepository quadraRepository, IReservaRepository reservaRepository)
     {
         _clienteRepository = clienteRepository;
         _quadraRepository = quadraRepository;
         _reservaRepository = reservaRepository;
     }
 
-    public async Task<Reserva> RegistrarAsync(
-        int idCliente,
-        int idQuadra,
-        int idEsporte,
-        DateOnly dataReserva,
-        TimeOnly horaInicio,
-        TimeOnly horaFim,
-        CancellationToken cancellationToken = default)
+    public async Task<Reserva> RegistrarAsync(int idCliente, int idQuadra, int idEsporte, DateOnly dataReserva, TimeOnly horaInicio, TimeOnly horaFim, CancellationToken cancellationToken = default)
     {
         if (idCliente <= 0)
         {
-            throw new ArgumentException(
-                "O cliente deve ter identificador positivo.");
+            throw new ArgumentException("O cliente deve ter identificador positivo.");
         }
 
-        if (!await _clienteRepository.ExisteAsync(
-                idCliente, cancellationToken))
+        if (!await _clienteRepository.ExisteAsync(idCliente, cancellationToken))
         {
             throw new InvalidOperationException("Cliente não cadastrado.");
         }
 
-        var quadra = await ValidarQuadraEIntervaloAsync(
-            idQuadra,
-            idEsporte,
-            dataReserva,
-            horaInicio,
-            horaFim,
-            cancellationToken);
+        var quadra = await ValidarQuadraEIntervaloAsync(idQuadra, idEsporte, dataReserva, horaInicio, horaFim, cancellationToken);
 
         var duracaoHoras =
             (horaFim.Ticks - horaInicio.Ticks) / TimeSpan.TicksPerHour;
@@ -71,76 +53,42 @@ public class ReservaService : IReservaService
             IdStatus = StatusReserva.Pendente
         };
 
-        var registrada =
-            await _reservaRepository.TentarRegistrarSemSobreposicaoAsync(
-                reserva, StatusBloqueantes, cancellationToken);
+        var registrada = await _reservaRepository.TentarRegistrarSemSobreposicaoAsync(reserva, StatusBloqueantes, cancellationToken);
 
         if (!registrada)
         {
-            throw new InvalidOperationException(
-                "A quadra já possui uma reserva nesse intervalo.");
+            throw new InvalidOperationException("A quadra já possui uma reserva nesse intervalo.");
         }
-
         return reserva;
     }
 
-    public async Task<bool> VerificarDisponibilidadeAsync(
-        int idQuadra,
-        int idEsporte,
-        DateOnly dataReserva,
-        TimeOnly horaInicio,
-        TimeOnly horaFim,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> VerificarDisponibilidadeAsync(int idQuadra, int idEsporte, DateOnly dataReserva, TimeOnly horaInicio, TimeOnly horaFim, CancellationToken cancellationToken = default)
     {
-        await ValidarQuadraEIntervaloAsync(
-            idQuadra,
-            idEsporte,
-            dataReserva,
-            horaInicio,
-            horaFim,
-            cancellationToken);
+        await ValidarQuadraEIntervaloAsync(idQuadra, idEsporte, dataReserva, horaInicio, horaFim, cancellationToken);
 
-        var existeSobreposicao =
-            await _reservaRepository.ExisteSobreposicaoAsync(
-                idQuadra,
-                dataReserva,
-                horaInicio,
-                horaFim,
-                StatusBloqueantes,
-                cancellationToken);
+        var existeSobreposicao = await _reservaRepository.ExisteSobreposicaoAsync(idQuadra, dataReserva, horaInicio, horaFim, StatusBloqueantes, cancellationToken);
 
         return !existeSobreposicao;
     }
 
-    private async Task<Quadra> ValidarQuadraEIntervaloAsync(
-        int idQuadra,
-        int idEsporte,
-        DateOnly dataReserva,
-        TimeOnly horaInicio,
-        TimeOnly horaFim,
-        CancellationToken cancellationToken)
+    private async Task<Quadra> ValidarQuadraEIntervaloAsync(int idQuadra, int idEsporte, DateOnly dataReserva, TimeOnly horaInicio, TimeOnly horaFim, CancellationToken cancellationToken)
     {
         if (idQuadra <= 0 || idEsporte <= 0)
         {
-            throw new ArgumentException(
-                "Quadra e modalidade devem ter identificadores positivos.");
+            throw new ArgumentException("Quadra e modalidade devem ter identificadores positivos.");
         }
 
-        if (horaInicio.Ticks % TimeSpan.TicksPerHour != 0 ||
-            horaFim.Ticks % TimeSpan.TicksPerHour != 0)
+        if (horaInicio.Ticks % TimeSpan.TicksPerHour != 0 || horaFim.Ticks % TimeSpan.TicksPerHour != 0)
         {
-            throw new ArgumentException(
-                "Os horários devem estar em horas inteiras.");
+            throw new ArgumentException("Os horários devem estar em horas inteiras.");
         }
 
         if (horaFim <= horaInicio)
         {
-            throw new ArgumentException(
-                "O horário final deve ser posterior ao inicial, no mesmo dia.");
+            throw new ArgumentException("O horário final deve ser posterior ao inicial, no mesmo dia.");
         }
 
-        var quadra = await _quadraRepository.ObterParaReservaAsync(
-            idQuadra, cancellationToken);
+        var quadra = await _quadraRepository.ObterParaReservaAsync(idQuadra, cancellationToken);
 
         if (quadra is null)
         {
@@ -155,23 +103,50 @@ public class ReservaService : IReservaService
         if (!quadra.QuadraEsportes.Any(
                 modalidade => modalidade.IdEsporte == idEsporte))
         {
-            throw new InvalidOperationException(
-                "A modalidade não é compatível com a quadra.");
+            throw new InvalidOperationException("A modalidade não é compatível com a quadra.");
         }
 
         var diaSemana = (byte)((int)dataReserva.DayOfWeek + 1);
 
-        var dentroDoFuncionamento = quadra.HorariosFuncionamento.Any(
-            horario => horario.DiaSemana == diaSemana &&
-                horaInicio >= horario.HoraAbertura &&
-                horaFim <= horario.HoraFechamento);
+        var dentroDoFuncionamento = quadra.HorariosFuncionamento.Any(h =>
+            h.DiaSemana == diaSemana && horaInicio >= h.HoraAbertura && horaFim <= h.HoraFechamento);
 
         if (!dentroDoFuncionamento)
         {
-            throw new InvalidOperationException(
-                "O intervalo está fora do horário de funcionamento.");
+            throw new InvalidOperationException("O intervalo está fora do horário de funcionamento.");
         }
 
         return quadra;
+    }
+
+    public async Task<Reserva> CancelarAsync(int idReserva, CancellationToken cancellationToken = default)
+    {
+        if (idReserva <= 0)
+        {
+            throw new ArgumentException("A reserva deve ter identificador positivo.");
+        }
+
+        var reserva = await _reservaRepository.ObterPorIdAsync(idReserva, cancellationToken);
+
+        if (reserva is null)
+        {
+            throw new InvalidOperationException("Reserva não encontrada.");
+        }
+
+        if (!StatusBloqueantes.Contains(reserva.IdStatus))
+        {
+            throw new InvalidOperationException("Somente reservas ativas podem ser canceladas.");
+        }
+
+        var cancelada = await _reservaRepository.TentarCancelarAsync(idReserva, StatusBloqueantes, cancellationToken);
+
+        if (!cancelada)
+        {
+            throw new InvalidOperationException("A reserva não está mais ativa para cancelamento.");
+        }
+
+        reserva.IdStatus = StatusReserva.Cancelada;
+
+        return reserva;
     }
 }
