@@ -4,6 +4,7 @@ using ArenaBook.Api.DTOs;
 using ArenaBook.Core.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using ArenaBook.Core.Enums;
 
 namespace ArenaBook.Api.Controllers;
 
@@ -80,5 +81,22 @@ public class ClientesController : ControllerBase
         }
 
         return NoContent();
+    }
+    [HttpDelete("{idCliente:int}")]
+    public async Task<IActionResult> Excluir(
+    int idCliente,
+    CancellationToken cancellationToken)
+    {
+        var resultado = await _service.ExcluirAsync(idCliente, cancellationToken);
+
+        return resultado switch
+        {
+            ResultadoExclusaoCliente.Excluido => NoContent(),
+            ResultadoExclusaoCliente.NaoEncontrado => NotFound(
+                new { mensagem = "Cliente não encontrado." }),
+            ResultadoExclusaoCliente.PossuiReservas => Conflict(
+                new { mensagem = "O cliente possui reservas vinculadas." }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
     }
 }

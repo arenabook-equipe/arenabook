@@ -1,6 +1,7 @@
 ﻿using ArenaBook.Core.Entities;
 using ArenaBook.Core.Interfaces;
 using ArenaBook.Core.Services;
+using ArenaBook.Core.Enums;
 
 namespace ArenaBook.Test.Unit;
 
@@ -86,6 +87,25 @@ public class ClienteServiceTests
             cliente.Telefone = telefone;
 
             return Task.FromResult(true);
+        }
+        public Task<ResultadoExclusaoCliente> ExcluirAsync(
+    int idCliente,
+    CancellationToken cancellationToken)
+        {
+            var cliente = ClienteSalvo;
+
+            if (cliente is null || cliente.IdCliente != idCliente)
+            {
+                return Task.FromResult(ResultadoExclusaoCliente.NaoEncontrado);
+            }
+
+            if (cliente.Reservas.Count > 0)
+            {
+                return Task.FromResult(ResultadoExclusaoCliente.PossuiReservas);
+            }
+
+            ClienteSalvo = null;
+            return Task.FromResult(ResultadoExclusaoCliente.Excluido);
         }
     }
 

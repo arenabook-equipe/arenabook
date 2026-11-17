@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using ArenaBook.Core.Entities;
+using ArenaBook.Core.Enums;
 
 namespace ArenaBook.Core.Interfaces;
 
@@ -14,6 +15,9 @@ public interface IClienteRepository
     int idCliente,
     string nome,
     string telefone,
+    CancellationToken cancellationToken);
+    Task<ResultadoExclusaoCliente> ExcluirAsync(
+    int idCliente,
     CancellationToken cancellationToken);
 
 }

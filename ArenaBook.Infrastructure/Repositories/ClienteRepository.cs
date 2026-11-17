@@ -5,6 +5,7 @@ using ArenaBook.Core.Entities;
 using ArenaBook.Core.Interfaces;
 using ArenaBook.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using ArenaBook.Core.Enums;
 
 namespace ArenaBook.Infrastructure.Repositories;
 
@@ -63,5 +64,27 @@ public class ClienteRepository : IClienteRepository
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;
+    }
+    public async Task<ResultadoExclusaoCliente> ExcluirAsync(
+    int idCliente,
+    CancellationToken cancellationToken)
+    {
+        var clientes = _context.Clientes
+            .Where(cliente => cliente.IdCliente == idCliente);
+
+        var linhasExcluidas = await clientes
+            .Where(cliente => !cliente.Reservas.Any())
+            .ExecuteDeleteAsync(cancellationToken);
+
+        if (linhasExcluidas > 0)
+        {
+            return ResultadoExclusaoCliente.Excluido;
+        }
+
+        var clienteExiste = await clientes.AnyAsync(cancellationToken);
+
+        return clienteExiste
+            ? ResultadoExclusaoCliente.PossuiReservas
+            : ResultadoExclusaoCliente.NaoEncontrado;
     }
 }

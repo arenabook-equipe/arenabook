@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ArenaBook.Core.Entities;
 using ArenaBook.Core.Interfaces;
+using ArenaBook.Core.Enums;
 
 namespace ArenaBook.Core.Services;
 
@@ -63,5 +64,11 @@ public class ClienteService
             nome.Trim(),
             telefone.Trim(),
             cancellationToken);
+    }
+    public Task<ResultadoExclusaoCliente> ExcluirAsync(
+    int idCliente,
+    CancellationToken cancellationToken)
+    {
+        return _repository.ExcluirAsync(idCliente, cancellationToken);
     }
 }
