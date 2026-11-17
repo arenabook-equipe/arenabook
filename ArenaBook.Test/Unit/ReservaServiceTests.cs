@@ -297,16 +297,7 @@ public class ReservaServiceTests
     // Depois do fechamento.
     [TestCase(1, 1, 2, true, 21, 0, 23, 0,
         typeof(InvalidOperationException))]
-    public void Criacao_DadosInvalidos_DeveRecusarSemSalvar(
-        int idCliente,
-        int idQuadra,
-        int idEsporte,
-        bool ativa,
-        int horaInicio,
-        int minutoInicio,
-        int horaFim,
-        int minutoFim,
-        Type tipoExcecao)
+    public void Criacao_DadosInvalidos_DeveRecusarSemSalvar(int idCliente, int idQuadra, int idEsporte, bool ativa, int horaInicio, int minutoInicio, int horaFim, int minutoFim, Type tipoExcecao)
     {
         var data = new DateOnly(2030, 1, 6);
         var quadra = CriarQuadraParaDisponibilidade(data);
@@ -333,9 +324,10 @@ public class ReservaServiceTests
         Assert.That(repository.ReservasSalvas, Is.Empty);
     }
 
-    [TestCase(18, 20, false)] // Intervalo duplicado.
-    [TestCase(16, 18, true)]  // Termina quando a existente começa.
-    [TestCase(20, 21, true)]  // Começa quando a existente termina.
+    [TestCase(18, 20, false)] // Intervalo duplicado
+    [TestCase(16, 18, true)]  // Termina quando a existente começa
+    [TestCase(20, 21, true)]  // Começa quando a existente termina
+    // A quadra está ocupada das 18h às 20h, mas a reserva é de outra modalidade
     public async Task Criacao_DeveRespeitarOcupacaoEPermitirConsecutivos(int horaInicio, int horaFim, bool deveRegistrar)
     {
         var data = new DateOnly(2030, 1, 6);
@@ -396,6 +388,126 @@ public class ReservaServiceTests
         });
     }
 
+    [TestCase(StatusReserva.Pendente)]
+    [TestCase(StatusReserva.Confirmada)]
+    // A reserva cancelada deve liberar o horário para nova reserva e manter o histórico da reserva original
+    public async Task R03_CancelarReserva_DeveLiberarHorarioEPreservarHistorico(StatusReserva statusInicial)
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var repository = new ReservaRepositoryFake();
+
+        IReservaService service = new ReservaService(
+            new ClienteRepositoryFake(),
+            new QuadraRepositoryFake(CriarQuadraParaDisponibilidade(data)), repository);
+
+        var original = await service.RegistrarAsync(1, 1, 1, data, new TimeOnly(18, 0), new TimeOnly(20, 0));
+
+        original.IdStatus = statusInicial;
+
+        var disponivelAntes = await service.VerificarDisponibilidadeAsync(1, 2, data, new TimeOnly(18, 0), new TimeOnly(20, 0));
+
+        Assert.That(disponivelAntes, Is.False);
+
+        var cancelada = await service.CancelarAsync(original.IdReserva);
+
+        var disponivelDepois = await service.VerificarDisponibilidadeAsync(1, 2, data, new TimeOnly(18, 0), new TimeOnly(20, 0));
+
+        Assert.That(disponivelDepois, Is.True);
+
+        var nova = await service.RegistrarAsync(1, 1, 2, data, new TimeOnly(18, 0), new TimeOnly(20, 0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(repository.ReservasSalvas, Has.Count.EqualTo(2));
+            Assert.That(repository.ReservasSalvas[0], Is.SameAs(original));
+
+            Assert.That(cancelada.IdReserva, Is.EqualTo(original.IdReserva));
+            Assert.That(original.IdStatus, Is.EqualTo(StatusReserva.Cancelada));
+            Assert.That(original.HoraInicio, Is.EqualTo(new TimeOnly(18, 0)));
+            Assert.That(original.HoraFim, Is.EqualTo(new TimeOnly(20, 0)));
+            Assert.That(original.ValorTotal, Is.EqualTo(160m));
+
+            Assert.That(nova.IdReserva, Is.Not.EqualTo(original.IdReserva));
+            Assert.That(nova.IdStatus, Is.EqualTo(StatusReserva.Pendente));
+            Assert.That(nova.ValorTotal, Is.EqualTo(160m));
+        });
+    }
+
+    [Test]
+    public async Task Cancelamento_SegundaTentativa_DeveSerRecusada()
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var repository = new ReservaRepositoryFake();
+
+        var service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(CriarQuadraParaDisponibilidade(data)), repository);
+
+        var reserva = await service.RegistrarAsync(1, 1, 1, data, new TimeOnly(18, 0), new TimeOnly(20, 0));
+
+        await service.CancelarAsync(reserva.IdReserva);
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await service.CancelarAsync(reserva.IdReserva);
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(repository.ReservasSalvas, Has.Count.EqualTo(1));
+            Assert.That(reserva.IdStatus, Is.EqualTo(StatusReserva.Cancelada));
+        });
+    }
+
+    [Test]
+    public void Cancelamento_ReservaInexistente_DeveSerRecusado()
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var repository = new ReservaRepositoryFake();
+
+        var service = new ReservaService(
+            new ClienteRepositoryFake(),
+            new QuadraRepositoryFake(CriarQuadraParaDisponibilidade(data)),
+            repository);
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await service.CancelarAsync(99);
+        });
+
+        Assert.That(repository.ReservasSalvas, Is.Empty);
+    }
+
+    [Test]
+    public void Cancelamento_ReservaConcluida()
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var repository = new ReservaRepositoryFake();
+
+        var reserva = new Reserva
+        {
+            IdReserva = 1,
+            IdCliente = 1,
+            IdQuadra = 1,
+            IdEsporte = 1,
+            DataReserva = data,
+            HoraInicio = new TimeOnly(18, 0),
+            HoraFim = new TimeOnly(20, 0),
+            ValorTotal = 160m,
+            IdStatus = StatusReserva.Concluida
+        };
+
+        repository.ReservasSalvas.Add(reserva);
+
+        var service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(CriarQuadraParaDisponibilidade(data)), repository);
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await service.CancelarAsync(1);
+        });
+
+        Assert.That(reserva.IdStatus, Is.EqualTo(StatusReserva.Concluida));
+    }
+
+    // Cria uma quadra com duas modalidades e horário de funcionamento para o dia da semana da data informada
     private static Quadra CriarQuadraParaDisponibilidade(DateOnly data)
     {
         var quadra = new Quadra
@@ -429,7 +541,6 @@ public class ReservaServiceTests
 
         return quadra;
     }
-
     private sealed class ClienteRepositoryFake : IClienteRepository
     {
         public Task<bool> ExisteAsync(int idCliente, CancellationToken cancellationToken = default)
@@ -484,6 +595,26 @@ public class ReservaServiceTests
             ReservasSalvas.Add(reserva);
 
             return true;
+        }
+        public Task<Reserva?> ObterPorIdAsync(int idReserva, CancellationToken cancellationToken = default)
+        {
+            var reserva = ReservasSalvas.SingleOrDefault(item => item.IdReserva == idReserva);
+
+            return Task.FromResult(reserva);
+        }
+
+        public Task<bool> TentarCancelarAsync(int idReserva, IReadOnlyCollection<StatusReserva> statusPermitidos, CancellationToken cancellationToken = default)
+        {
+            var reserva = ReservasSalvas.SingleOrDefault(item => item.IdReserva == idReserva);
+
+            if (reserva is null || !statusPermitidos.Contains(reserva.IdStatus))
+            {
+                return Task.FromResult(false);
+            }
+
+            reserva.IdStatus = StatusReserva.Cancelada;
+
+            return Task.FromResult(true);
         }
     }
 }
