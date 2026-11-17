@@ -155,10 +155,7 @@ public class ReservaServiceTests
     [TestCase(19, 21, false)] // Sobreposição entre modalidades.
     [TestCase(18, 20, false)] // Mesmo intervalo.
     [TestCase(20, 21, true)]  // Começa quando a anterior termina.
-    public async Task Disponibilidade_DeveConsiderarOcupacaoDaQuadra(
-    int horaInicio,
-    int horaFim,
-    bool esperado)
+    public async Task Disponibilidade_DeveConsiderarOcupacaoDaQuadra(int horaInicio, int horaFim, bool esperado)
     {
         var data = new DateOnly(2030, 1, 6);
         var quadra = CriarQuadraParaDisponibilidade(data);
@@ -339,10 +336,7 @@ public class ReservaServiceTests
     [TestCase(18, 20, false)] // Intervalo duplicado.
     [TestCase(16, 18, true)]  // Termina quando a existente começa.
     [TestCase(20, 21, true)]  // Começa quando a existente termina.
-    public async Task Criacao_DeveRespeitarOcupacaoEPermitirConsecutivos(
-    int horaInicio,
-    int horaFim,
-    bool deveRegistrar)
+    public async Task Criacao_DeveRespeitarOcupacaoEPermitirConsecutivos(int horaInicio, int horaFim, bool deveRegistrar)
     {
         var data = new DateOnly(2030, 1, 6);
         var quadra = CriarQuadraParaDisponibilidade(data);
@@ -363,17 +357,11 @@ public class ReservaServiceTests
 
         repository.ReservasSalvas.Add(original);
 
-        var service = new ReservaService(
-            new ClienteRepositoryFake(),
-            new QuadraRepositoryFake(quadra),
-            repository);
+        var service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(quadra), repository);
 
         if (deveRegistrar)
         {
-            var resultado = await service.RegistrarAsync(
-                1, 1, 2, data,
-                new TimeOnly(horaInicio, 0),
-                new TimeOnly(horaFim, 0));
+            var resultado = await service.RegistrarAsync(1, 1, 2, data, new TimeOnly(horaInicio, 0), new TimeOnly(horaFim, 0));
 
             Assert.Multiple(() =>
             {
