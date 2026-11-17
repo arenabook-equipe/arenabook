@@ -9,6 +9,7 @@ namespace ArenaBook.Test.Unit;
 public class ReservaServiceTests
 {
     [Test]
+    //deve ser possível registrar uma reserva de duas horas
     public async Task R01_ReservaDuasHoras()
     {
         //cliente cadastrado e quadra disponível.
@@ -148,6 +149,146 @@ public class ReservaServiceTests
             Assert.That(reservaOriginal.HoraFim, Is.EqualTo(new TimeOnly(20, 0)));
             Assert.That(reservaOriginal.ValorTotal, Is.EqualTo(160m));
         });
+    }
+
+    [TestCase(16, 18, true)]  // Antes da reserva existente.
+    [TestCase(19, 21, false)] // Sobreposição entre modalidades.
+    [TestCase(18, 20, false)] // Mesmo intervalo.
+    [TestCase(20, 21, true)]  // Começa quando a anterior termina.
+    public async Task Disponibilidade_DeveConsiderarOcupacaoDaQuadra(
+    int horaInicio,
+    int horaFim,
+    bool esperado)
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var quadra = CriarQuadraParaDisponibilidade(data);
+        var repository = new ReservaRepositoryFake();
+
+        repository.ReservasSalvas.Add(new Reserva
+        {
+            IdReserva = 1,
+            IdCliente = 1,
+            IdQuadra = 1,
+            IdEsporte = 1,
+            DataReserva = data,
+            HoraInicio = new TimeOnly(18, 0),
+            HoraFim = new TimeOnly(20, 0),
+            ValorTotal = 160m,
+            IdStatus = StatusReserva.Confirmada
+        });
+
+        IReservaService service = new ReservaService(
+            new ClienteRepositoryFake(),
+            new QuadraRepositoryFake(quadra),
+            repository);
+
+        var disponivel = await service.VerificarDisponibilidadeAsync(
+            idQuadra: 1,
+            idEsporte: 2,
+            dataReserva: data,
+            horaInicio: new TimeOnly(horaInicio, 0),
+            horaFim: new TimeOnly(horaFim, 0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(disponivel, Is.EqualTo(esperado));
+            Assert.That(repository.ReservasSalvas, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Disponibilidade_QuadraLivre_NaoDeveCriarReserva()
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var repository = new ReservaRepositoryFake();
+
+        IReservaService service = new ReservaService(
+            new ClienteRepositoryFake(),
+            new QuadraRepositoryFake(CriarQuadraParaDisponibilidade(data)),
+            repository);
+
+        var disponivel = await service.VerificarDisponibilidadeAsync(
+            1, 2, data, new TimeOnly(18, 0), new TimeOnly(20, 0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(disponivel, Is.True);
+            Assert.That(repository.ReservasSalvas, Is.Empty);
+        });
+    }
+
+    [TestCase(0, 2, true, 18, 0, 20, typeof(ArgumentException))]
+    [TestCase(1, 0, true, 18, 0, 20, typeof(ArgumentException))]
+    [TestCase(99, 2, true, 18, 0, 20, typeof(InvalidOperationException))]
+    [TestCase(1, 2, false, 18, 0, 20, typeof(InvalidOperationException))]
+    [TestCase(1, 99, true, 18, 0, 20, typeof(InvalidOperationException))]
+    [TestCase(1, 2, true, 18, 30, 20, typeof(ArgumentException))]
+    [TestCase(1, 2, true, 20, 0, 18, typeof(ArgumentException))]
+    [TestCase(1, 2, true, 18, 0, 18, typeof(ArgumentException))]
+    [TestCase(1, 2, true, 7, 0, 9, typeof(InvalidOperationException))]
+    [TestCase(1, 2, true, 21, 0, 23, typeof(InvalidOperationException))]
+    public void Disponibilidade_DadosInvalidos_DeveRecusar(
+        int idQuadra,
+        int idEsporte,
+        bool ativa,
+        int horaInicio,
+        int minutoInicio,
+        int horaFim,
+        Type tipoExcecao)
+    {
+        var data = new DateOnly(2030, 1, 6);
+        var quadra = CriarQuadraParaDisponibilidade(data);
+        quadra.Ativa = ativa;
+
+        var repository = new ReservaRepositoryFake();
+
+        IReservaService service = new ReservaService(new ClienteRepositoryFake(), new QuadraRepositoryFake(quadra), repository);
+
+        Assert.ThrowsAsync(tipoExcecao, async () =>
+        {
+            await service.VerificarDisponibilidadeAsync(
+                idQuadra,
+                idEsporte,
+                data,
+                new TimeOnly(horaInicio, minutoInicio),
+                new TimeOnly(horaFim, 0));
+        });
+
+        Assert.That(repository.ReservasSalvas, Is.Empty);
+    }
+
+    private static Quadra CriarQuadraParaDisponibilidade(DateOnly data)
+    {
+        var quadra = new Quadra
+        {
+            IdQuadra = 1,
+            Nome = "Quadra poliesportiva",
+            Ativa = true,
+            PrecoHora = 80m
+        };
+
+        quadra.QuadraEsportes.Add(new QuadraEsporte
+        {
+            IdQuadra = 1,
+            IdEsporte = 1
+        });
+
+        quadra.QuadraEsportes.Add(new QuadraEsporte
+        {
+            IdQuadra = 1,
+            IdEsporte = 2
+        });
+
+        quadra.HorariosFuncionamento.Add(new HorarioFuncionamento
+        {
+            IdHorario = 1,
+            IdQuadra = 1,
+            DiaSemana = (byte)((int)data.DayOfWeek + 1),
+            HoraAbertura = new TimeOnly(8, 0),
+            HoraFechamento = new TimeOnly(22, 0)
+        });
+
+        return quadra;
     }
 
     private sealed class ClienteRepositoryFake : IClienteRepository
