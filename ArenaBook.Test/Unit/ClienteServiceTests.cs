@@ -63,5 +63,11 @@ public class ClienteServiceTests
             ClienteSalvo = cliente;
             return Task.CompletedTask;
         }
+        public Task<Cliente?> ObterPorIdAsync(
+    int idCliente,
+    CancellationToken cancellationToken)
+        {
+            return Task.FromResult(ClienteSalvo?.IdCliente == idCliente ? ClienteSalvo : null);
+        }
     }
 }

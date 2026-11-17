@@ -42,4 +42,24 @@ public class ClientesController : ControllerBase
             cliente.Email
         });
     }
+    [HttpGet("{idCliente:int}")]
+    public async Task<IActionResult> ConsultarPorId(
+    int idCliente,
+    CancellationToken cancellationToken)
+    {
+        var cliente = await _service.ObterPorIdAsync(idCliente, cancellationToken);
+
+        if (cliente is null)
+        {
+            return NotFound(new { mensagem = "Cliente não encontrado." });
+        }
+
+        return Ok(new
+        {
+            cliente.IdCliente,
+            cliente.Nome,
+            cliente.Telefone,
+            cliente.Email
+        });
+    }
 }

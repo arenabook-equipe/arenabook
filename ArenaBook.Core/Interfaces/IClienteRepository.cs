@@ -9,4 +9,6 @@ public interface IClienteRepository
     Task<bool> ExistePorEmailAsync(string email, CancellationToken cancellationToken);
 
     Task AdicionarAsync(Cliente cliente, CancellationToken cancellationToken);
+    Task<Cliente?> ObterPorIdAsync(int idCliente, CancellationToken cancellationToken);
+
 }

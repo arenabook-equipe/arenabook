@@ -33,4 +33,14 @@ public class ClienteRepository : IClienteRepository
         _context.Clientes.Add(cliente);
         await _context.SaveChangesAsync(cancellationToken);
     }
+    public Task<Cliente?> ObterPorIdAsync(
+    int idCliente,
+    CancellationToken cancellationToken)
+    {
+        return _context.Clientes
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                cliente => cliente.IdCliente == idCliente,
+                cancellationToken);
+    }
 }

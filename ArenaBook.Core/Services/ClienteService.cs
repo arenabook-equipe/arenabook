@@ -43,4 +43,10 @@ public class ClienteService
 
         return cliente;
     }
+    public Task<Cliente?> ObterPorIdAsync(
+    int idCliente,
+    CancellationToken cancellationToken)
+    {
+        return _repository.ObterPorIdAsync(idCliente, cancellationToken);
+    }
 }
