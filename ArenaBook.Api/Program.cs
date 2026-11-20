@@ -24,6 +24,9 @@ builder.Services.AddScoped<ClienteService>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<IQuadraCadastroRepository, QuadraCadastroRepository>();
+builder.Services.AddScoped<QuadraService>();
+builder.Services.AddScoped<IQuadraDisponibilidade>(sp => sp.GetRequiredService<QuadraService>());
 
 var app = builder.Build();
 
