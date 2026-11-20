@@ -19,7 +19,6 @@
   <ItemGroup>
     <ProjectReference Include="..\ArenaBook.Api\ArenaBook.Api.csproj" />
     <ProjectReference Include="..\ArenaBook.Core\ArenaBook.Core.csproj" />
-    <ProjectReference Include="..\ArenaBook.Infrastructure\ArenaBook.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,6 +27,7 @@
 
   <ItemGroup>
     <Folder Include="Integration\" />
+    <Folder Include="Unit\" />
   </ItemGroup>
 
 </Project>

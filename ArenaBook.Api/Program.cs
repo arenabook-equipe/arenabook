@@ -1,11 +1,9 @@
 using ArenaBook.Api.Configuration;
 using ArenaBook.Api.Diagnostics;
-using ArenaBook.Core.Interfaces;
-using ArenaBook.Core.Services;
-using ArenaBook.Infrastructure.Repositories;
 
 var checkDatabase = args.Contains("--check-database", StringComparer.Ordinal);
-var builder = WebApplication.CreateBuilder(args.Where(argument => argument != "--check-database").ToArray());
+var builder = WebApplication.CreateBuilder(
+    args.Where(argument => argument != "--check-database").ToArray());
 
 if (checkDatabase)
 {
@@ -18,15 +16,10 @@ if (checkDatabase)
         return;
     }
 }
-builder.Services.AddArenaBookDatabase(builder.Configuration);
-builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
-builder.Services.AddScoped<ClienteService>();
 
+builder.Services.AddArenaBookDatabase(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddScoped<IQuadraCadastroRepository, QuadraCadastroRepository>();
-builder.Services.AddScoped<QuadraService>();
-builder.Services.AddScoped<IQuadraDisponibilidade>(sp => sp.GetRequiredService<QuadraService>());
 
 var app = builder.Build();
 
