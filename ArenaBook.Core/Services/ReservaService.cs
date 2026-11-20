@@ -32,15 +32,16 @@ public class ReservaService : IReservaService
             throw new ArgumentException("O cliente deve ter identificador positivo.");
         }
 
-        if (!await _clienteRepository.ExisteAsync(idCliente, cancellationToken))
+        var cliente = await _clienteRepository.ObterPorIdAsync(idCliente, cancellationToken);
+
+        if (cliente is null)
         {
             throw new InvalidOperationException("Cliente não cadastrado.");
         }
 
         var quadra = await ValidarQuadraEIntervaloAsync(idQuadra, idEsporte, dataReserva, horaInicio, horaFim, cancellationToken);
 
-        var duracaoHoras =
-            (horaFim.Ticks - horaInicio.Ticks) / TimeSpan.TicksPerHour;
+        var duracaoHoras = (horaFim.Ticks - horaInicio.Ticks) / TimeSpan.TicksPerHour;
 
         var reserva = new Reserva
         {

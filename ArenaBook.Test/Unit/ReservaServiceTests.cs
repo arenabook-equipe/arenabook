@@ -694,9 +694,34 @@ public class ReservaServiceTests
     }
     private sealed class ClienteRepositoryFake : IClienteRepository
     {
-        public Task<bool> ExisteAsync(int idCliente, CancellationToken cancellationToken = default)
+        public Task<Cliente?> ObterPorIdAsync(int idCliente, CancellationToken cancellationToken)
         {
-            return Task.FromResult(idCliente == 1);
+            Cliente? cliente = idCliente == 1 ? new Cliente
+            {
+                IdCliente = 1 
+            } : null;
+
+            return Task.FromResult(cliente);
+        }
+
+        public Task<bool> ExistePorEmailAsync(string email, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException("Consulta por e-mail não utilizada nos testes de reservas.");
+        }
+
+        public Task AdicionarAsync(Cliente cliente, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException("Cadastro de cliente não utilizado nos testes de reservas.");
+        }
+
+        public Task<bool> AtualizarAsync(int idCliente, string nome, string telefone, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException("Atualização de cliente não utilizada nos testes de reservas.");
+        }
+
+        public Task<ResultadoExclusaoCliente> ExcluirAsync(int idCliente, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException("Exclusão de cliente não utilizada nos testes de reservas.");
         }
     }
 
