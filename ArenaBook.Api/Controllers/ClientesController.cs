@@ -1,10 +1,7 @@
-﻿    using System.Threading;
-using System.Threading.Tasks;
-using ArenaBook.Api.DTOs;
-using ArenaBook.Core.Services;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using ArenaBook.Api.DTOs;
 using ArenaBook.Core.Enums;
+using ArenaBook.Core.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ArenaBook.Api.Controllers;
 
@@ -12,91 +9,72 @@ namespace ArenaBook.Api.Controllers;
 [Route("api/clientes")]
 public class ClientesController : ControllerBase
 {
-    private readonly ClienteService _service;
-
-    public ClientesController(ClienteService service)
+    private readonly ClienteService _clienteService;
+    public ClientesController(ClienteService clienteService)
     {
-        _service = service;
+        _clienteService = clienteService;
     }
-
     [HttpPost]
-    public async Task<IActionResult> Cadastrar(
-        [FromBody] CriarClienteRequest request,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Cadastrar([FromBody] CriarClienteRequest request, CancellationToken cancellationToken)
     {
-        var cliente = await _service.CadastrarAsync(
-            request.Nome,
-            request.Telefone,
-            request.Email,
-            cancellationToken);
-
-        if (cliente is null)
+        try
         {
-            return Conflict(new { mensagem = "Este e-mail já está cadastrado." });
+            var cliente = await _clienteService.CadastrarAsync(request.Nome, request.Telefone, request.Email, cancellationToken);
+            if (cliente is null)
+            {
+                return Conflict(new { mensagem = "Este e-mail já está cadastrado." });
+            }
+            return StatusCode(StatusCodes.Status201Created, new { cliente.IdCliente, cliente.Nome, cliente.Telefone, cliente.Email });
         }
-
-        return StatusCode(StatusCodes.Status201Created, new
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
-            cliente.IdCliente,
-            cliente.Nome,
-            cliente.Telefone,
-            cliente.Email
-        });
-    }
-    [HttpGet("{idCliente:int}")]
-    public async Task<IActionResult> ConsultarPorId(
-    int idCliente,
-    CancellationToken cancellationToken)
-    {
-        var cliente = await _service.ObterPorIdAsync(idCliente, cancellationToken);
-
-        if (cliente is null)
-        {
-            return NotFound(new { mensagem = "Cliente não encontrado." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Erro ao cadastrar cliente." });
         }
-
-        return Ok(new
-        {
-            cliente.IdCliente,
-            cliente.Nome,
-            cliente.Telefone,
-            cliente.Email
-        });
     }
+   
+ 
     [HttpPut("{idCliente:int}")]
-    public async Task<IActionResult> Atualizar(
-    int idCliente,
-    [FromBody] AtualizarClienteRequest request,
-    CancellationToken cancellationToken)
+    public async Task<IActionResult> Atualizar(int idCliente, [FromBody] AtualizarClienteRequest request, CancellationToken cancellationToken)
     {
-        var atualizado = await _service.AtualizarAsync(
-            idCliente,
-            request.Nome,
-            request.Telefone,
-            cancellationToken);
-
-        if (!atualizado)
+        try
         {
-            return NotFound(new { mensagem = "Cliente não encontrado." });
+            var atualizado = await _clienteService.AtualizarAsync(idCliente, request.Nome, request.Telefone, cancellationToken);
+            if (!atualizado)
+            {
+                return NotFound(new { mensagem = "Cliente não encontrado." });
+            }
+            return NoContent();
         }
-
-        return NoContent();
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Erro ao atualizar cliente." });
+        }
     }
     [HttpDelete("{idCliente:int}")]
-    public async Task<IActionResult> Excluir(
-    int idCliente,
-    CancellationToken cancellationToken)
+    public async Task<IActionResult> Excluir(int idCliente, CancellationToken cancellationToken)
     {
-        var resultado = await _service.ExcluirAsync(idCliente, cancellationToken);
-
-        return resultado switch
+        try
         {
-            ResultadoExclusaoCliente.Excluido => NoContent(),
-            ResultadoExclusaoCliente.NaoEncontrado => NotFound(
-                new { mensagem = "Cliente não encontrado." }),
-            ResultadoExclusaoCliente.PossuiReservas => Conflict(
-                new { mensagem = "O cliente possui reservas vinculadas." }),
-            _ => StatusCode(StatusCodes.Status500InternalServerError)
-        };
+            var resultado = await _clienteService.ExcluirAsync(idCliente, cancellationToken);
+            return resultado switch
+            {
+                ResultadoExclusaoCliente.Excluido => NoContent(),
+                ResultadoExclusaoCliente.NaoEncontrado => NotFound(new { mensagem = "Cliente não encontrado." }),
+                ResultadoExclusaoCliente.PossuiReservas => Conflict(new { mensagem = "O cliente possui reservas vinculadas." }),
+                _ => StatusCode(StatusCodes.Status500InternalServerError)
+            };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Erro ao excluir cliente." });
+        }
     }
 }

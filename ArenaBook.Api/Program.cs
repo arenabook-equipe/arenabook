@@ -5,8 +5,7 @@ using ArenaBook.Core.Services;
 using ArenaBook.Infrastructure.Repositories;
 
 var checkDatabase = args.Contains("--check-database", StringComparer.Ordinal);
-var builder = WebApplication.CreateBuilder(
-    args.Where(argument => argument != "--check-database").ToArray());
+var builder = WebApplication.CreateBuilder(args.Where(argument => argument != "--check-database").ToArray());
 
 if (checkDatabase)
 {

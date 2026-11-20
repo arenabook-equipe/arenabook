@@ -13,11 +13,7 @@ public class ClienteServiceTests
         var repository = new ClienteRepositoryEmMemoria();
         var service = new ClienteService(repository);
 
-        var cliente = await service.CadastrarAsync(
-            "Ana Silva",
-            "35999999999",
-            "ana@example.com",
-            CancellationToken.None);
+        var cliente = await service.CadastrarAsync("Ana Silva", "35999999999", "ana@example.com", CancellationToken.None);
 
         Assert.That(cliente?.IdCliente, Is.EqualTo(1));
         Assert.That(repository.ClienteSalvo, Is.SameAs(cliente));
@@ -25,7 +21,6 @@ public class ClienteServiceTests
         Assert.That(cliente?.Telefone, Is.EqualTo("35999999999"));
         Assert.That(cliente?.Email, Is.EqualTo("ana@example.com"));
     }
-
     [Test]
     public void U02_NomeEmBrancoRecusaCadastro()
     {
@@ -35,46 +30,33 @@ public class ClienteServiceTests
         var erro = Assert.ThrowsAsync<ArgumentException>(async () =>
         {
             await service.CadastrarAsync(
-                "   ",
-                "35999999999",
-                "ana@example.com",
+                "   ", "35999999999", "ana@example.com",
                 CancellationToken.None);
         });
 
         Assert.That(erro?.ParamName, Is.EqualTo("nome"));
         Assert.That(repository.ClienteSalvo, Is.Null);
     }
-
     private sealed class ClienteRepositoryEmMemoria : IClienteRepository
     {
         public Cliente? ClienteSalvo { get; private set; }
 
-        public Task<bool> ExistePorEmailAsync(
-            string email,
-            CancellationToken cancellationToken)
+        public Task<bool> ExistePorEmailAsync(string email, CancellationToken cancellationToken)
         {
             return Task.FromResult(ClienteSalvo?.Email == email);
         }
 
-        public Task AdicionarAsync(
-            Cliente cliente,
-            CancellationToken cancellationToken)
+        public Task AdicionarAsync(Cliente cliente, CancellationToken cancellationToken)
         {
             cliente.IdCliente = 1;
             ClienteSalvo = cliente;
             return Task.CompletedTask;
         }
-        public Task<Cliente?> ObterPorIdAsync(
-    int idCliente,
-    CancellationToken cancellationToken)
+        public Task<Cliente?> ObterPorIdAsync(int idCliente, CancellationToken cancellationToken)
         {
             return Task.FromResult(ClienteSalvo?.IdCliente == idCliente ? ClienteSalvo : null);
         }
-        public Task<bool> AtualizarAsync(
-    int idCliente,
-    string nome,
-    string telefone,
-    CancellationToken cancellationToken)
+        public Task<bool> AtualizarAsync(int idCliente, string nome, string telefone, CancellationToken cancellationToken)
         {
             var cliente = ClienteSalvo;
 
@@ -88,9 +70,7 @@ public class ClienteServiceTests
 
             return Task.FromResult(true);
         }
-        public Task<ResultadoExclusaoCliente> ExcluirAsync(
-    int idCliente,
-    CancellationToken cancellationToken)
+        public Task<ResultadoExclusaoCliente> ExcluirAsync(int idCliente, CancellationToken cancellationToken)
         {
             var cliente = ClienteSalvo;
 

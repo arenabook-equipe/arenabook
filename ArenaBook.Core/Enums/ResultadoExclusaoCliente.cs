@@ -2,7 +2,5 @@
 
 public enum ResultadoExclusaoCliente
 {
-    Excluido,
-    NaoEncontrado,
-    PossuiReservas
+Excluido, NaoEncontrado, PossuiReservas
 }
