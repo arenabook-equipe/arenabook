@@ -1,4 +1,7 @@
 ﻿using ArenaBook.Core.Entities;
+using Microsoft.Identity.Client.NativeInterop;
+
+using ArenaBook.Core.Entities;
 
 namespace ArenaBook.Api.Contracts;
 

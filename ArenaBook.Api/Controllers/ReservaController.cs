@@ -18,27 +18,25 @@ public class ReservaController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Criar(CriarReservaRequest request)
     {
-        var reserva = await _service.CriarAsync(request.IdQuadra, request.IdEsporte,
-            request.IdCliente, request.DataReserva, request.HoraInicio, request.HoraFim);
+        var reserva = await _service.RegistrarAsync(
+            idCliente: request.IdCliente,
+            idQuadra: request.IdQuadra,
+            idEsporte: request.IdEsporte,
+            dataReserva: request.DataReserva,
+            horaInicio: request.HoraInicio,
+            horaFim: request.HoraFim);
+
         var response = ReservaResponse.De(reserva);
         return Created($"api/reservas/{response.IdReserva}", response);
     }
 
-    [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<ReservaResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Agenda([FromQuery] int idQuadra, [FromQuery] DateOnly data)
-    {
-        var reservas = await _service.ObterAgendaAsync(idQuadra, data);
-        return Ok(reservas.Select(ReservaResponse.De));
-    }
-
     [HttpPatch("{id}/cancelar")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ReservaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Cancelar(int id)
     {
-        await _service.CancelarAsync(id);
-        return NoContent();
+        var reserva = await _service.CancelarAsync(id);
+        return Ok(ReservaResponse.De(reserva));
     }
 }
