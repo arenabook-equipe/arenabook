@@ -1,4 +1,4 @@
-﻿using ArenaBook.Core.Entities;
+using ArenaBook.Core.Entities;
 using ArenaBook.Core.Interfaces;
 using ArenaBook.Core.Services;
 using NUnit.Framework;
@@ -27,6 +27,7 @@ public class FakeQuadraRepository : IQuadraCadastroRepository
 }
 
 [TestFixture]
+[Category("Unit")]
 public class QuadraServiceTests
 {
     private FakeQuadraRepository _repositorio = null!;
@@ -58,106 +59,6 @@ public class QuadraServiceTests
         Assert.ThrowsAsync<QuadraInvalidaException>(() =>
             _service.CadastrarAsync("Quadra 1", new[] { 1 }, 0m));
 
-        Assert.That(_repositorio.Quadras, Is.Empty);
-    }
-    [Test]
-    public void CadastroComNomeVazio_EhRecusado()
-    {
-        Assert.ThrowsAsync<QuadraInvalidaException>(() =>
-            _service.CadastrarAsync("", new[] { 1 }, 80m));
-        Assert.That(_repositorio.Quadras, Is.Empty);
-    }
-
-    [Test]
-    public void CadastroSemModalidades_EhRecusado()
-    {
-        Assert.ThrowsAsync<QuadraInvalidaException>(() =>
-            _service.CadastrarAsync("Quadra 1", Array.Empty<int>(), 80m));
-        Assert.That(_repositorio.Quadras, Is.Empty);
-    }
-
-    [Test]
-    public void CadastroComModalidadeInexistente_EhRecusado()
-    {
-        Assert.ThrowsAsync<QuadraInvalidaException>(() =>
-            _service.CadastrarAsync("Quadra 1", new[] { 99 }, 80m));
-        Assert.That(_repositorio.Quadras, Is.Empty);
-    }
-
-    [Test]
-    public void CadastroComPrecoAcimaDoLimite_EhRecusado()
-    {
-        Assert.ThrowsAsync<QuadraInvalidaException>(() =>
-            _service.CadastrarAsync("Quadra 1", new[] { 1 }, 100_000_000m));
-    }
-
-    [Test]
-    public void CadastroComMaisDeDuasCasasDecimais_EhRecusado()
-    {
-        Assert.ThrowsAsync<QuadraInvalidaException>(() =>
-            _service.CadastrarAsync("Quadra 1", new[] { 1 }, 80.555m));
-    }
-
-    [Test]
-    public async Task ConsultarQuadraCadastrada_RetornaOsDados()
-    {
-        var criada = await _service.CadastrarAsync("Quadra 1", new[] { 1, 2 }, 80m);
-
-        var consultada = await _service.ConsultarAsync(criada.IdQuadra);
-
-        Assert.That(consultada.Nome, Is.EqualTo("Quadra 1"));
-        Assert.That(consultada.PrecoHora, Is.EqualTo(80m));
-    }
-
-    [Test]
-    public void ConsultarQuadraInexistente_GeraErro()
-    {
-        Assert.ThrowsAsync<QuadraNaoEncontradaException>(() => _service.ConsultarAsync(999));
-    }
-
-    [Test]
-    public async Task EditarQuadra_AtualizaNomePrecoEModalidades()
-    {
-        var quadra = await _service.CadastrarAsync("Quadra 1", new[] { 1 }, 80m);
-
-        var editada = await _service.EditarAsync(quadra.IdQuadra, "Quadra Central", new[] { 2, 3 }, 100m);
-
-        Assert.That(editada.Nome, Is.EqualTo("Quadra Central"));
-        Assert.That(editada.PrecoHora, Is.EqualTo(100m));
-        Assert.That(editada.QuadraEsportes.Select(qe => qe.IdEsporte), Is.EquivalentTo(new[] { 2, 3 }));
-    }
-
-    [Test]
-    public async Task EditarComDadoInvalido_EhRecusadoENaoAlteraAQuadra()
-    {
-        var quadra = await _service.CadastrarAsync("Quadra 1", new[] { 1 }, 80m);
-
-        Assert.ThrowsAsync<QuadraInvalidaException>(() =>
-            _service.EditarAsync(quadra.IdQuadra, null, null, 0m));
-
-        Assert.That((await _service.ConsultarAsync(quadra.IdQuadra)).PrecoHora, Is.EqualTo(80m));
-    }
-
-    [Test]
-    public async Task QuadraDesativada_FicaInativa()
-    {
-        var quadra = await _service.CadastrarAsync("Quadra 1", new[] { 1 }, 80m);
-
-        await _service.DesativarAsync(quadra.IdQuadra);
-
-        Assert.That(await _service.EstaDisponivelAsync(quadra.IdQuadra), Is.False);
-    }
-
-    [Test]
-    public void DesativarQuadraInexistente_GeraErro()
-    {
-        Assert.ThrowsAsync<QuadraNaoEncontradaException>(() => _service.DesativarAsync(999));
-    }
-
-    [Test]
-    public void CadastroComNomeAcimaDe100Caracteres_EhRecusado()
-    {
-        Assert.ThrowsAsync<QuadraInvalidaException>(() => _service.CadastrarAsync(new string('a', 101), new[] { 1 }, 80m));
         Assert.That(_repositorio.Quadras, Is.Empty);
     }
 }

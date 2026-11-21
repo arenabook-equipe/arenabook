@@ -1,10 +1,11 @@
-﻿using ArenaBook.Core.Entities;
+using ArenaBook.Core.Entities;
 using ArenaBook.Core.Interfaces;
 using ArenaBook.Core.Services;
 using ArenaBook.Core.Enums;
 
 namespace ArenaBook.Test.Unit;
 
+[Category("Unit")]
 public class ClienteServiceTests
 {
     [Test]
@@ -13,6 +14,9 @@ public class ClienteServiceTests
         var repository = new ClienteRepositoryEmMemoria();
         var service = new ClienteService(repository);
         var cliente = await service.CadastrarAsync("Ana Silva", "35999999999", "ana@example.com", CancellationToken.None);
+
+        var consultado = await service.ObterPorIdAsync(cliente!.IdCliente, CancellationToken.None);
+        Assert.That(consultado, Is.SameAs(cliente));
 
         Assert.That(cliente?.IdCliente, Is.EqualTo(1));
         Assert.That(repository.ClienteSalvo, Is.SameAs(cliente));
