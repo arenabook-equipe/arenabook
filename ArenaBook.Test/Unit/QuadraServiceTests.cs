@@ -157,8 +157,7 @@ public class QuadraServiceTests
     [Test]
     public void CadastroComNomeAcimaDe100Caracteres_EhRecusado()
     {
-        Assert.ThrowsAsync<QuadraInvalidaException>(() =>
-            _service.CadastrarAsync(new string('a', 101), new[] { 1 }, 80m));
+        Assert.ThrowsAsync<QuadraInvalidaException>(() => _service.CadastrarAsync(new string('a', 101), new[] { 1 }, 80m));
         Assert.That(_repositorio.Quadras, Is.Empty);
     }
 }

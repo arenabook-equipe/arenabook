@@ -17,4 +17,7 @@ public interface IReservaService
     // Retorna sugestões de horários livres com a duração solicitada
     Task<IReadOnlyList<HorarioDisponivel>> SugerirHorariosAsync(int idQuadra, DateOnly dataReserva, int duracaoHoras, CancellationToken cancellationToken = default);
 
+
+    //consulta as reservas ativas da quadra na data informada.
+    Task<IReadOnlyList<Reserva>> ConsultarAgendaAsync(int idQuadra, DateOnly dataReserva, CancellationToken cancellationToken = default);
 }

@@ -8,6 +8,6 @@ public record EditarQuadraRequest(string? Nome, List<int>? IdsEsportes, decimal?
 
 public record QuadraResponse(int IdQuadra, string? Nome, decimal PrecoHora, bool Ativa, List<int> IdsEsportes)
 {
-    public static QuadraResponse De(Quadra q) =>
+    public static QuadraResponse CriarResposta(Quadra q) =>
         new(q.IdQuadra, q.Nome, q.PrecoHora, q.Ativa, q.QuadraEsportes.Select(qe => qe.IdEsporte).ToList());
 }
