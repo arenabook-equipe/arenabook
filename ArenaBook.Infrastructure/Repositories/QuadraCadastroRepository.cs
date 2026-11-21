@@ -34,4 +34,10 @@ public class QuadraCadastroRepository : IQuadraCadastroRepository
         // A quadra veio do próprio contexto (rastreada), então basta salvar.
         await _context.SaveChangesAsync();
     }
+
+    public async Task<bool> TodosEsportesExistemAsync(IReadOnlyCollection<int> idsEsportes)
+    {
+        var encontrados = await _context.Esportes.CountAsync(e => idsEsportes.Contains(e.IdEsporte));
+        return encontrados == idsEsportes.Count;
+    }
 }
