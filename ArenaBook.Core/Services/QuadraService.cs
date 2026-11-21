@@ -5,10 +5,14 @@ namespace ArenaBook.Core.Services;
 
 public class QuadraService(IQuadraCadastroRepository repositorio) : IQuadraDisponibilidade
 {
+    private const decimal PrecoMaximo = 99_999_999.99m; // limite do DECIMAL(10,2)
+    private const int NomeMaximo = 100; // limite do NVARCHAR(100)
+
     public async Task<Quadra> CadastrarAsync(string? nome, IEnumerable<int>? idsEsportes, decimal precoHora)
     {
         var esportes = (idsEsportes ?? Array.Empty<int>()).Distinct().ToList();
         Validar(nome, esportes, precoHora);
+        await ValidarEsportesExistemAsync(esportes);
 
         var quadra = new Quadra
         {
@@ -36,6 +40,9 @@ public class QuadraService(IQuadraCadastroRepository repositorio) : IQuadraDispo
         var novoPreco = precoHora ?? quadra.PrecoHora;
 
         Validar(novoNome, novosEsportes, novoPreco);
+
+        if (idsEsportes != null)
+            await ValidarEsportesExistemAsync(novosEsportes);
 
         var remover = idsEsportes == null
             ? new List<QuadraEsporte>()
@@ -73,6 +80,12 @@ public class QuadraService(IQuadraCadastroRepository repositorio) : IQuadraDispo
         return (await ConsultarAsync(idQuadra)).Ativa;
     }
 
+    private async Task ValidarEsportesExistemAsync(IReadOnlyCollection<int> idsEsportes)
+    {
+        if (!await repositorio.TodosEsportesExistemAsync(idsEsportes))
+            throw new QuadraInvalidaException("Uma ou mais modalidades informadas não existem");
+    }
+
     private static void Validar(string? nome, IReadOnlyCollection<int> idsEsportes, decimal precoHora)
     {
         if (string.IsNullOrWhiteSpace(nome))
@@ -81,5 +94,11 @@ public class QuadraService(IQuadraCadastroRepository repositorio) : IQuadraDispo
             throw new QuadraInvalidaException("Informe ao menos uma modalidade");
         if (precoHora <= 0)
             throw new QuadraInvalidaException("Preço por hora deve ser maior que zero");
+        if (precoHora > PrecoMaximo)
+            throw new QuadraInvalidaException("Preço por hora excede o limite permitido");
+        if (decimal.Round(precoHora, 2) != precoHora)
+            throw new QuadraInvalidaException("Preço por hora deve ter no máximo 2 casas decimais");
+        if (nome!.Trim().Length > NomeMaximo)
+            throw new QuadraInvalidaException("Nome da quadra excede 100 caracteres");
     }
 }
