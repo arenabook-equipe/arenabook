@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Repositories\IHorarioFuncionamentoRepository.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\ArenaBook.Core\ArenaBook.Core.csproj" />
   </ItemGroup>
   <ItemGroup>

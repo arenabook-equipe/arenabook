@@ -28,6 +28,14 @@ builder.Services.AddScoped<IQuadraCadastroRepository, QuadraCadastroRepository>(
 builder.Services.AddScoped<QuadraService>();
 builder.Services.AddScoped<IQuadraDisponibilidade>(sp => sp.GetRequiredService<QuadraService>());
 
+builder.Services.AddScoped<IReservaService, ReservaService>();
+builder.Services.AddScoped<IReservaRepository, ReservaRepository>();
+builder.Services.AddScoped<IQuadraRepository, QuadraRepository>();
+
+builder.Services.AddScoped< IHorarioFuncionamentoRepository, HorarioFuncionamentoRepository>();
+
+builder.Services.AddScoped<HorarioFuncionamentoService>();
+
 var app = builder.Build();
 
 if (checkDatabase)
@@ -40,6 +48,13 @@ if (checkDatabase)
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint(
+            "/openapi/v1.json",
+            "ArenaBook API v1");
+    });
 }
 
 app.UseHttpsRedirection();

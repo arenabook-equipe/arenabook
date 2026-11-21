@@ -3,6 +3,7 @@ using ArenaBook.Core.Enums;
 using ArenaBook.Core.Interfaces;
 using ArenaBook.Core.Services;
 using NUnit.Framework;
+using ArenaBook.Core.Exceptions;
 
 namespace ArenaBook.Test.Unit;
 
