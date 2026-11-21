@@ -36,7 +36,7 @@ public class ReservaService : IReservaService
 
         if (cliente is null)
         {
-            throw new InvalidOperationException("Cliente não cadastrado.");
+            throw new KeyNotFoundException("Cliente não cadastrado.");
         }
 
         var quadra = await ValidarQuadraEIntervaloAsync(idQuadra, idEsporte, dataReserva, horaInicio, horaFim, cancellationToken);
@@ -94,7 +94,7 @@ public class ReservaService : IReservaService
 
         if (quadra is null)
         {
-            throw new InvalidOperationException("Quadra não encontrada.");
+            throw new KeyNotFoundException("Quadra não encontrada.");
         }
 
         if (!quadra.Ativa)
@@ -132,7 +132,7 @@ public class ReservaService : IReservaService
 
         if (reserva is null)
         {
-            throw new InvalidOperationException("Reserva não encontrada.");
+            throw new KeyNotFoundException("Reserva não encontrada.");
         }
 
         if (!StatusBloqueantes.Contains(reserva.IdStatus))
@@ -167,7 +167,7 @@ public class ReservaService : IReservaService
 
         if (quadra is null)
         {
-            throw new InvalidOperationException("Quadra não encontrada.");
+            throw new KeyNotFoundException("Quadra não encontrada.");
         }
 
         if (!quadra.Ativa)
@@ -209,5 +209,27 @@ public class ReservaService : IReservaService
         }
 
         return sugestoes;
+    }
+
+    public async Task<IReadOnlyList<Reserva>> ConsultarAgendaAsync(int idQuadra, DateOnly dataReserva, CancellationToken cancellationToken = default)
+    {
+        if (idQuadra <= 0)
+        {
+            throw new ArgumentException("A quadra deve ter identificador positivo.");
+        }
+
+        if (dataReserva == default)
+        {
+            throw new ArgumentException("Informe uma data válida.");
+        }
+
+        var quadra = await _quadraRepository.ObterParaReservaAsync(idQuadra, cancellationToken);
+
+        if (quadra is null)
+        {
+            throw new KeyNotFoundException("Quadra não encontrada.");
+        }
+
+        return await _reservaRepository.ConsultarAgendaAsync(idQuadra, dataReserva, cancellationToken);
     }
 }

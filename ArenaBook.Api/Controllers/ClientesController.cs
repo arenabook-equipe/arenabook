@@ -22,13 +22,19 @@ public class ClientesController : ControllerBase
             var cliente = await _clienteService.CadastrarAsync(request.Nome, request.Telefone, request.Email, cancellationToken);
             if (cliente is null)
             {
-                return Conflict(new { mensagem = "Este e-mail já está cadastrado." });
+                var erro = new { mensagem = "Este e-mail já está cadastrado." };
+
+                return Conflict(erro);
             }
-            return StatusCode(StatusCodes.Status201Created, new { cliente.IdCliente, cliente.Nome, cliente.Telefone, cliente.Email });
+            var response = new { cliente.IdCliente, cliente.Nome, cliente.Telefone, cliente.Email };
+
+            return StatusCode(StatusCodes.Status201Created, response);
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Erro ao cadastrar cliente." });
+            var erro = new { mensagem = "Erro ao cadastrar cliente." };
+
+            return StatusCode(StatusCodes.Status500InternalServerError, erro);
         }
     }
    
@@ -41,17 +47,17 @@ public class ClientesController : ControllerBase
             var atualizado = await _clienteService.AtualizarAsync(idCliente, request.Nome, request.Telefone, cancellationToken);
             if (!atualizado)
             {
-                return NotFound(new { mensagem = "Cliente não encontrado." });
+                var erro = new { mensagem = "Cliente não encontrado." };
+
+                return NotFound(erro);
             }
             return NoContent();
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
         catch (Exception)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Erro ao atualizar cliente." });
+            var erro = new { mensagem = "Erro ao atualizar cliente." };
+
+            return StatusCode(StatusCodes.Status500InternalServerError, erro);
         }
     }
     [HttpDelete("{idCliente:int}")]
@@ -68,13 +74,11 @@ public class ClientesController : ControllerBase
                 _ => StatusCode(StatusCodes.Status500InternalServerError)
             };
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
         catch (Exception)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Erro ao excluir cliente." });
+            var erro = new { mensagem = "Erro ao excluir cliente." };
+
+            return StatusCode(StatusCodes.Status500InternalServerError, erro);
         }
     }
     [HttpGet("{idCliente:int}")]
@@ -85,17 +89,19 @@ public class ClientesController : ControllerBase
             var cliente = await _clienteService.ObterPorIdAsync(idCliente, cancellationToken);
             if (cliente is null)
             {
-                return NotFound(new { mensagem = "Cliente não encontrado." });
+                var erro = new { mensagem = "Cliente não encontrado." };
+
+                return NotFound(erro);
             }
-            return Ok(new { cliente.IdCliente, cliente.Nome, cliente.Telefone, cliente.Email });
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
+            var response = new { cliente.IdCliente, cliente.Nome, cliente.Telefone, cliente.Email };
+
+            return Ok(response);
         }
         catch (Exception)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Erro ao consultar cliente." });
+            var erro = new { mensagem = "Erro ao consultar cliente." };
+
+            return StatusCode(StatusCodes.Status500InternalServerError, erro);
         }
     }
 }

@@ -66,4 +66,14 @@ public class ReservaRepository : IReservaRepository
 
         return quantidadeAtualizada == 1;
     }
+
+    public async Task<IReadOnlyList<Reserva>> ConsultarAgendaAsync(int idQuadra, DateOnly dataReserva, CancellationToken cancellationToken = default)
+    {
+        return await _context.Reservas
+            .AsNoTracking()
+            .Where(reserva => reserva.IdQuadra == idQuadra && reserva.DataReserva == dataReserva && (reserva.IdStatus == StatusReserva.Pendente || reserva.IdStatus == StatusReserva.Confirmada))
+            .OrderBy(reserva => reserva.HoraInicio)
+            .ThenBy(reserva => reserva.IdReserva)
+            .ToListAsync(cancellationToken);
+    }
 }

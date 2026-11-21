@@ -14,11 +14,16 @@ public class QuadrasController(QuadraService service) : ControllerBase
         try
         {
             var quadra = await service.CadastrarAsync(request.Nome, request.IdsEsportes, request.PrecoHora);
-            return CreatedAtAction(nameof(Consultar), new { id = quadra.IdQuadra }, QuadraResponse.De(quadra));
+            var response = QuadraResponse.CriarResposta(quadra);
+            var rota = new { id = quadra.IdQuadra };
+
+            return CreatedAtAction(nameof(Consultar), rota, response);
         }
         catch (QuadraInvalidaException ex)
         {
-            return BadRequest(new { erro = ex.Message });
+            var erro = new { erro = ex.Message };
+
+            return BadRequest(erro);
         }
     }
 
@@ -27,11 +32,17 @@ public class QuadrasController(QuadraService service) : ControllerBase
     {
         try
         {
-            return Ok(QuadraResponse.De(await service.ConsultarAsync(id)));
+            var quadra = await service.ConsultarAsync(id);
+
+            var response = QuadraResponse.CriarResposta(quadra);
+
+            return Ok(response);
         }
         catch (QuadraNaoEncontradaException ex)
         {
-            return NotFound(new { erro = ex.Message });
+            var erro = new { erro = ex.Message };
+
+            return NotFound(erro);
         }
     }
 
@@ -41,15 +52,15 @@ public class QuadrasController(QuadraService service) : ControllerBase
         try
         {
             var quadra = await service.EditarAsync(id, request.Nome, request.IdsEsportes, request.PrecoHora);
-            return Ok(QuadraResponse.De(quadra));
-        }
-        catch (QuadraNaoEncontradaException ex)
-        {
-            return NotFound(new { erro = ex.Message });
+            var response = QuadraResponse.CriarResposta(quadra);
+
+            return Ok(response);
         }
         catch (QuadraInvalidaException ex)
         {
-            return BadRequest(new { erro = ex.Message });
+            var erro = new { erro = ex.Message };
+
+            return BadRequest(erro);
         }
     }
 
@@ -63,7 +74,9 @@ public class QuadrasController(QuadraService service) : ControllerBase
         }
         catch (QuadraNaoEncontradaException ex)
         {
-            return NotFound(new { erro = ex.Message });
+            var erro = new { erro = ex.Message };
+
+            return NotFound(erro);
         }
     }
 
@@ -72,11 +85,17 @@ public class QuadrasController(QuadraService service) : ControllerBase
     {
         try
         {
-            return Ok(new { idQuadra = id, disponivel = await service.EstaDisponivelAsync(id) });
+            var disponivel = await service.EstaDisponivelAsync(id);
+
+            var response = new { idQuadra = id, disponivel };
+
+            return Ok(response);
         }
         catch (QuadraNaoEncontradaException ex)
         {
-            return NotFound(new { erro = ex.Message });
+            var erro = new { erro = ex.Message };
+
+            return NotFound(erro);
         }
     }
 }

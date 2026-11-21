@@ -16,4 +16,7 @@ public interface IReservaRepository
 
     //consultará a reserva pelo id e status.
     Task<bool> TentarCancelarAsync(int idReserva, IReadOnlyCollection<StatusReserva> statusPermitidos, CancellationToken cancellationToken = default);
+
+    //consulta as reservas ativas da quadra na data informada.
+    Task<IReadOnlyList<Reserva>> ConsultarAgendaAsync(int idQuadra, DateOnly dataReserva, CancellationToken cancellationToken = default);
 }
