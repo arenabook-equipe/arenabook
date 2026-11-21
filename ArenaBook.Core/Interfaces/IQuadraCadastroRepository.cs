@@ -7,4 +7,5 @@ public interface IQuadraCadastroRepository
     Task<Quadra> AdicionarAsync(Quadra quadra);
     Task<Quadra?> ObterPorIdAsync(int idQuadra);
     Task AtualizarAsync(Quadra quadra);
+    Task<bool> TodosEsportesExistemAsync(IReadOnlyCollection<int> idsEsportes);
 }
