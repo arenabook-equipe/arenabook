@@ -12,7 +12,6 @@ public class ClienteServiceTests
     {
         var repository = new ClienteRepositoryEmMemoria();
         var service = new ClienteService(repository);
-
         var cliente = await service.CadastrarAsync("Ana Silva", "35999999999", "ana@example.com", CancellationToken.None);
 
         Assert.That(cliente?.IdCliente, Is.EqualTo(1));
@@ -29,11 +28,8 @@ public class ClienteServiceTests
 
         var erro = Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            await service.CadastrarAsync(
-                "   ", "35999999999", "ana@example.com",
-                CancellationToken.None);
+            await service.CadastrarAsync("   ", "35999999999", "ana@example.com", CancellationToken.None);
         });
-
         Assert.That(erro?.ParamName, Is.EqualTo("nome"));
         Assert.That(repository.ClienteSalvo, Is.Null);
     }

@@ -28,7 +28,9 @@ public class ClienteService
 
         var cliente = new Cliente
         {
-            Nome = nome.Trim(), Telefone = telefone.Trim(), Email = emailCadastro
+            Nome = nome.Trim(),
+            Telefone = telefone.Trim(),
+            Email = emailCadastro
         };
 
         await _repository.AdicionarAsync(cliente, cancellationToken);

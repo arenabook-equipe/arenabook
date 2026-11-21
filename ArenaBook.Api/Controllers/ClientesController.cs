@@ -77,4 +77,25 @@ public class ClientesController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Erro ao excluir cliente." });
         }
     }
+    [HttpGet("{idCliente:int}")]
+    public async Task<IActionResult> ObterPorId(int idCliente, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var cliente = await _clienteService.ObterPorIdAsync(idCliente, cancellationToken);
+            if (cliente is null)
+            {
+                return NotFound(new { mensagem = "Cliente não encontrado." });
+            }
+            return Ok(new { cliente.IdCliente, cliente.Nome, cliente.Telefone, cliente.Email });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Erro ao consultar cliente." });
+        }
+    }
 }
